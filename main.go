@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type User struct {
@@ -37,7 +38,12 @@ var authenticatedUser *User
 var taskStorage []Task
 var categoryStorage []Category
 
+const userStoragePath = "user.txt"
+
 func main() {
+
+	// load data from user storage file
+	loadUserStorageFromFile()
 
 	fmt.Println("Hello to TODO app")
 
@@ -183,12 +189,10 @@ func registerUser() {
 	}
 
 	userStorage = append(userStorage, user)
-	// save user data in user.txt file
 
-	path := "user.txt"
 	var file *os.File
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(userStoragePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("can't create or open file.", err)
 
@@ -247,5 +251,60 @@ func listTasks() {
 		if task.UserID == authenticatedUser.ID {
 			fmt.Println(task)
 		}
+	}
+}
+
+func loadUserStorageFromFile() {
+	file, err := os.Open(userStoragePath)
+	if err != nil {
+		fmt.Println("can't open the file", err)
+	}
+
+	var data = make([]byte, 1024)
+	_, oErr := file.Read(data)
+	if oErr != nil {
+		fmt.Println("can't read from the file", oErr)
+	}
+
+	var dataStr = string(data)
+
+	userSlice := strings.Split(dataStr, "\n")
+	for _, u := range userSlice {
+		if u == "" {
+			continue
+		}
+
+		var user = User{}
+
+		userFields := strings.Split(u, ",")
+		for _, field := range userFields {
+			values := strings.Split(field, ": ")
+			if len(values) != 2 {
+				fmt.Println("record is not valid", len(values))
+
+				continue
+			}
+			fieldName := strings.ReplaceAll(values[0], " ", "")
+			fieldValue := values[1]
+
+			switch fieldName {
+			case "id":
+				id, err := strconv.Atoi(fieldValue)
+				if err != nil {
+					fmt.Println("strconv error", err)
+
+					return
+				}
+				user.ID = id
+			case "name":
+				user.Name = fieldValue
+			case "email":
+				user.Email = fieldValue
+			case "password":
+				user.Password = fieldValue
+			}
+		}
+
+		fmt.Printf("user: %+v\n", user)
 	}
 }

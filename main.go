@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -202,7 +204,7 @@ func registerUser() {
 		ID:       len(userStorage) + 1,
 		Name:     name,
 		Email:    email,
-		Password: password,
+		Password: hashThePassword(password),
 	}
 
 	userStorage = append(userStorage, user)
@@ -229,7 +231,7 @@ func login() {
 	// get the email and password from the client
 
 	for _, user := range userStorage {
-		if user.Email == email && user.Password == password {
+		if user.Email == email && user.Password == hashThePassword(password) {
 			authenticatedUser = &user
 
 			break
@@ -374,4 +376,10 @@ func deserializationFromCustom(userStr string) (User, error) {
 	}
 
 	return user, nil
+}
+
+func hashThePassword(password string) string {
+	hash := md5.Sum([]byte(password))
+
+	return hex.EncodeToString(hash[:])
 }
